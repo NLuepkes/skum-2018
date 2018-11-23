@@ -76,34 +76,82 @@ def calPrior(listOfLists):
 		priors[x] = np.divide(len(listOfLists[x]),obSize)
 	return priors
 
-# part b
-def exb():
-	global numbOfClasses
-	global arraySize
 
-	file = open(filepath)
-	readHeader(file)
+##### SHEET 05 ####
 
-	listOfLists = sortByClass(file)
-	means = calculateMeans(listOfLists)
-	sigsq = sigmaSquared(listOfLists, means)
-	prior = calPrior(listOfLists)
+# a)
 
-	file = open("usps_d.param", "w")
-	file.write("d"+"\n")
-	file.write(str(numbOfClasses)+"\n")
-	file.write(str(arraySize)+"\n")
+# class specific full covariance matrix
+def csfullcovm(listOfLists, listMeans) :
+	listOfSig = []
+	for index in range(numbOfClasses):
+		sum = np.zeros((256,256), dtype = float)
+		for observation in listOfLists[index % numbOfClasses]:
+			x = observation - listMeans[index]
+			x = np.matmul(x, np.matrix.transpose(x))
+			sum = np.add(sum, x)
+		listOfSig.extend(np.divide(sum, len(listOfLists[index])))
+	return listOfSig
+						  
+def csdiagcovm(listOfLists, listMeans) : 
+	listOfSig = []
+	for index in range(numbOfClasses):
+		sum = np.zeros(256, dtype = float)
+		for observation in listOfLists[index % numbOfClasses]:
+			x = observation - listMeans[index]
+			x = np.square(x)
+			sum = np.add(sum, x)
+		listOfM.extend(np.divide(sum, len(listOfLists[index])))
+	return listOfSig
 
-	for x in range(1,numbOfClasses+1) :
-		file.write(str(x)+"\n")
-		file.write(str(prior[x%numbOfClasses]))
-		file.write("\n")
-		for i in means[x%numbOfClasses] :
-			file.write(str(i)+" ")
-		file.write("\n")
-		for i in sigsq :
-			file.write(str(i))
-		file.write("\n")
-	return print("done!")
+def pfullcovm(listOfLists, listMeans) :
+	sum = np.zeros((256,256), dtype = float)
+	for index in range(numbOfClasses):
+		for observation in listOfLists[index % numbOfClasses]:
+			x = observation - listMeans[index]
+			x = np.matmul(x, np.matrix.transpose(x))
+			sum = np.add(sum, x)
+	sum = np.divide(sum, obSize)
+	return sum
 
-exb()
+def pdiagcovm(listOfLists, listMeans) : 
+	sum = np.zeros(256, dtype = float)
+	for index in range(numbOfClasses):
+		for observation in listOfLists[index % numbOfClasses]:
+			x = observation - listMeans[index]
+			x = np.square(x)
+			sum = np.add(sum, x)
+	sum = np.divide(sum, obSize)
+	return sum
+
+
+def smooth(listOfLists, lam, means) :
+	pooledM = pfullcovm(listOfLists, means)
+	csM = cdfullcovm(listOfLists, means)
+	sig = []
+	for index in range(numbOfClasses) :
+		sig.extend(lam*pooledM + (1-lam)*csM[index%numbOfClasses])
+	return sig
+		
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
