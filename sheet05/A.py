@@ -233,7 +233,7 @@ def train():
 	covarsByClass = sigmaSquared(observationsByClass,meansByClass)
 	covarsByClass = [covarsByClass for n in range(0,10)]
 	
-	#covarsByClass = csdiagcovm(observationsByClass, meansByClass)
+	covarsByClass = csdiagcovm(observationsByClass, meansByClass)
 
 
 def test(filename):
