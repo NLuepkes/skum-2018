@@ -90,7 +90,7 @@ def inverseCovars_full(covars):
 		invCov.append(np.linalg.inv(sig))
 	return invCov
 
-def invsersCovars_diag(covars):
+def inverseCovars_diag(covars):
 	# list of vectors
 	invCovs = []
 	for diagVector in covars:
@@ -104,11 +104,24 @@ def determinants_diag(covars):
 		determinants.append(np.prod(covar))
 	return determinants
 
-def logConstTerm(determinants):
+def determinants_full(covars):
+	determinants = []
+	for covar in covars:
+		determinants.append(np.linalg.det(covar))
+	return determinants
+
+def logDeterminants_full(covars):
+	determinants = []
+	for covar in covars:
+		(sign,logdet) = np.linalg.slogdet(covar)
+		determinants.append(sign*logdet)
+	return determinants
+
+def logConstTerm(logDeterminants):
 	global arraySize
 	lCTerms = []
-	for det in determinants:
-		num = (-1/2)*(arraySize*(np.log(2) + np.log(math.pi))+np.log(det))
+	for det in logDeterminants:
+		num = (-1/2)*(arraySize*(np.log(2) + np.log(math.pi))+det)
 		lCTerms.append(num)
 	return lCTerms
 
@@ -124,7 +137,7 @@ def quadratic_diag(mean,invCovar,x):
 
 def quadratic_full(mean,invCovar,x):
 	vec = x - mean
-	temp = invCovar*vec
+	temp = np.dot(invCovar,vec)
 	return (-1/2)*np.dot(vec,temp)
 
 
@@ -208,11 +221,11 @@ def pdiagcovm(listOfLists, listMeans) :
 
 
 def smooth(listOfLists, lam, means) :
-	pooledM = pfullcovm(listOfLists, means)
-	csM = cdfullcovm(listOfLists, means)
+	pooledM = pfullcovm(listOfLists, means)[0]
+	csM = csfullcovm(listOfLists, means)
 	sig = []
 	for index in range(numbOfClasses) :
-		sig.extend(lam*pooledM + (1-lam)*csM[index%numbOfClasses])
+		sig.append(lam*pooledM + (1-lam)*csM[index])
 	return sig
 
 def printParam_full(priors,means,sigmas,filename):
@@ -337,8 +350,8 @@ def test(filename):
 
 	lPriors = logPriors(priorsByClass)
 	logConstTerms = logConstTerm(determinants_diag(covarsByClass))
-	invCovs = invsersCovars_diag(covarsByClass)
-	logConstTerms = [0]*10
+	logConstTerms = [0]*10 #pooled
+	invCovs = inverseCovars_diag(covarsByClass)
 	mistakesMatrix = np.zeros((10,10),dtype = int)
 
 	file = open(filename)
@@ -351,18 +364,78 @@ def test(filename):
 		for observation in testInstancesByClass[k%10]:
 			# für Blatt 03 ist _diag ok, ansich aber allgemein machen
 			foundClass = decisionRule_diag(lPriors,invCovs,meansByClass,logConstTerms,observation)
-			print(foundClass)
+			#print(foundClass)
 			if foundClass != k:
 				numberOfMistakes = numberOfMistakes + 1
 				mistakesMatrix[k%10,foundClass%10] = mistakesMatrix[k%10,foundClass%10] + 1
 
 	errorRate = numberOfMistakes / numberOfTests
+
+	file = open("usps_d.error","w+")
+	file.write(str(errorRate))
+
+	file = open("usps_d.cm","w+")
+	for row in mistakesMatrix:
+		for entry in row:
+			file.write(str(entry))
+			file.write(" ")
+		file.write("\n")
+
 	print(errorRate)
 	print(mistakesMatrix)
 
+def sheet5exC(lam):
+	global numbOfClasses
+	global arraySize
+	global filepath
+	global meansByClass
+	global priorsByClass
+	global covarsByClass
+
+	file = open(filepath)
+	readHeader(file)
+
+	observationsByClass = sortByClass(file)
+	meansByClass = calculateMeans(observationsByClass)
+	priorsByClass = calPrior(observationsByClass)
+	covarsByClass = smooth(observationsByClass,lam,meansByClass)
+
+	lPriors = logPriors(priorsByClass)
+	logDets = logDeterminants_full(covarsByClass)
+	logConstTerms = logConstTerm(logDets)
+	invCovs = inverseCovars_full(covarsByClass)
+	mistakesMatrix = np.zeros((10,10),dtype = int)
+
+	file = open("usps.test")
+	readHeader(file)
+	testInstancesByClass = sortByClass(file)
+	numberOfTests = 0
+	numberOfMistakes = 0
+	for k in range(10):
+		numberOfTests = numberOfTests + len(testInstancesByClass[k%10])
+		for observation in testInstancesByClass[k%10]:
+			# für Blatt 03 ist _diag ok, ansich aber allgemein machen
+			foundClass = decisionRule_full(lPriors,invCovs,meansByClass,logConstTerms,observation)
+			#print(foundClass)
+			if foundClass != k:
+				numberOfMistakes = numberOfMistakes + 1
+				mistakesMatrix[k%10,foundClass%10] = mistakesMatrix[k%10,foundClass%10] + 1
+
+	errorRate = numberOfMistakes / numberOfTests
+
+	print(errorRate)
+	print(mistakesMatrix)
+	return errorRate
+
+def plotSmoothingErrors():
+	lambs = [1,1/2,10^(-1),10^(-2),10^(-3),10^(-4),10^(-5),10^(-6)]
+	errors =[]
+	for l in lambs:
+		errors.append(sheet5exC(l))
+	print(errors)
 
 def run():
 	train()
 	test("usps.test")
-
-printAllParams()
+plotSmoothingErrors()
+#printAllParams()

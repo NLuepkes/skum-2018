@@ -1,0 +1,25 @@
+a) 	files
+
+b) 	1.: files
+	2.: The covariance matricies from i and ii are class specific. In our case a class specific cov matrix would mean
+		that the deviation of one character (class) from its mean is fundamentally different than the deviation of
+		other characters from their respective means. However, the deviation we are talking about is a result of the
+		different handwritings of people and without further information there is no reason to assume that the deviations 
+		are influenced by the individual characters rather than by the writers handwriting. That means
+		without further information we should assume that the deviations are somewhat uniform over the sample taken from one
+		person and are independent of the specific characters.
+
+
+c) 	We failed to log-plot the errors, however here they are:
+
+	lambs = [1,1/2,10^(-1),10^(-2),10^(-3),10^(-4),10^(-5),10^(-6)]
+
+	errors = [0.114598903836572, 0.09118086696562033, 0.9676133532635774, 0.9755854509217738, 0.9541604384653712, 0.9202790234180369, 0.9750871948181365, 0.9262580966616841]
+
+	A big lambda means beeing close to completly class specific covMats, a small one that one almost uses a pooled covMat.
+	It appears, that a pooled covMat (lamb = 1) works well, but the best is a nice mix of 50%pooled and 50% specific. 
+	Relying more strongly on the class specific share seems to work very poorly. The explanation for this might be closely
+	related to our answer in b):
+	It seems like the specific characters do have a slight specific tendency for their deviation across all people, however,
+	the general deviation (uniform across all characters) determined by a persons handwriting is an important factor aswell
+	(actually more important, since soley relying on it works quite well) and the best is a mix of both.
