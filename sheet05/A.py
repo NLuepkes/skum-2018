@@ -72,7 +72,7 @@ def sigmaSquared(listOfLists, means):
 	for x in range(numbOfClasses) :
 		for arr in listOfLists[x] :
 			v = np.add(v, np.square( np.subtract(arr, means[x])))
-	return np.divide(v, obSize).tolist()
+	return [np.divide(v, obSize).tolist()]*10
 
 def calPrior(listOfLists):
 	global numbOfClasses
@@ -130,9 +130,9 @@ def quadratic_full(mean,invCovar,x):
 
 def decisionRule_full(logPriors,invCovs,means,logConstTerms,x):
 	global numbOfClasses
-	maxIndex = -1
-	max = -sys.maxsize
-	for k in range(numbOfClasses):
+	maxIndex = 0
+	max = logPriors[0] + logConstTerms[0] + quadratic_full(means[0],invCovs[0],x)
+	for k in range(1,numbOfClasses):
 		disc = logPriors[k] + logConstTerms[k] + quadratic_full(means[k],invCovs[k],x)
 		if disc >= max :
 			max = disc
@@ -141,8 +141,8 @@ def decisionRule_full(logPriors,invCovs,means,logConstTerms,x):
 
 def decisionRule_diag(logPriors,invCovs,means,logConstTerms,x):
 	global numbOfClasses
-	maxIndex = -1
-	max = -sys.maxsize
+	maxIndex = 0
+	max = logPriors[0] + logConstTerms[0] + quadratic_diag(means[0],invCovs[0],x)
 	probs = []
 	for k in range(numbOfClasses):
 		disc = logPriors[k] + logConstTerms[k] + quadratic_diag(means[k],invCovs[k],x)
@@ -150,10 +150,6 @@ def decisionRule_diag(logPriors,invCovs,means,logConstTerms,x):
 		if disc >= max :
 			max = disc
 			maxIndex = k
-	if maxIndex == -1 :
-		print("maxIndex == -1 => kein Max gefunden")
-	#print(probs)
-	#exit(0)
 	return maxIndex
 
 
@@ -179,32 +175,36 @@ def csdiagcovm(listOfLists, listMeans) :
 	listOfSig = []
 	for index in range(numbOfClasses):
 		sum = np.zeros(256, dtype = float)
-		for observation in listOfLists[index % numbOfClasses]:
+		for observation in listOfLists[index]:
 			x = observation - listMeans[index]
 			x = np.square(x)
 			sum = np.add(sum, x)
 		listOfSig.append(np.divide(sum, len(listOfLists[index])))
 	return listOfSig
 
+
+
 def pfullcovm(listOfLists, listMeans) :
 	sum = np.zeros((256,256), dtype = float)
 	for index in range(numbOfClasses):
 		for observation in listOfLists[index % numbOfClasses]:
 			x = observation - listMeans[index]
-			x = np.matmul(x, np.matrix.transpose(x))
+			x = np.outer(x, x)
 			sum = np.add(sum, x)
 	sum = np.divide(sum, obSize)
-	return sum
+	return [sum]*10
 
 def pdiagcovm(listOfLists, listMeans) :
 	sum = np.zeros(256, dtype = float)
 	for index in range(numbOfClasses):
-		for observation in listOfLists[index % numbOfClasses]:
+		for observation in listOfLists[index]:
 			x = observation - listMeans[index]
 			x = np.square(x)
 			sum = np.add(sum, x)
 	sum = np.divide(sum, obSize)
-	return sum
+	return [sum]*10
+
+
 
 
 def smooth(listOfLists, lam, means) :
@@ -214,6 +214,100 @@ def smooth(listOfLists, lam, means) :
 	for index in range(numbOfClasses) :
 		sig.extend(lam*pooledM + (1-lam)*csM[index%numbOfClasses])
 	return sig
+
+def printParam_full(priors,means,sigmas,filename):
+	global numbOfClasses
+	global arraySize
+	file = open(filename,"w+")
+	file.write("f\n")
+	file.write(str(numbOfClasses))
+	file.write("\n")
+	file.write(str(arraySize))
+	file.write("\n")
+
+	for i in range(1,numbOfClasses+1):
+		i = i % numbOfClasses	#internally class 10 is at index 0 but we want to print it last
+		file.write(str(i))
+		file.write("\n")
+
+		file.write(str(priors[i]))
+		file.write("\n")
+
+		for entry in means[i]:
+			file.write(str(entry))
+			file.write(" ")
+
+		for row in sigmas[i]:
+			for entry in row:
+				file.write(str(entry))
+				file.write(" ")
+			file.write("\n")
+		file.write("\n")
+
+		#for y in range(arraySize):
+		#	for x in range(arraySize):
+		#		file.write(str(sigmas[y][x]))
+		#		file.write(" ")
+		#	file.write("\n")
+
+def printParam_diag(priors,means,sigmas,filename):
+	global numbOfClasses
+	global arraySize
+	file = open(filename,"w+")
+	file.write("d\n")
+	file.write(str(numbOfClasses))
+	file.write("\n")
+	file.write(str(arraySize))
+	file.write("\n")
+
+	for i in range(1,numbOfClasses+1):
+		i = i % numbOfClasses	#internally class 10 is at index 0 but we want to print it last
+		file.write(str(i))
+		file.write("\n")
+
+		file.write(str(priors[i]))
+		file.write("\n")
+
+		for entry in means[i]:
+			file.write(str(entry))
+			file.write(" ")
+
+		for entry in sigmas[i]:
+			file.write(str(entry))
+			file.write(" ")
+
+		file.write("\n")
+
+
+def printAllParams():
+	global numbOfClasses
+	global arraySize
+	global filepath
+	global meansByClass
+	global priorsByClass
+	global covarsByClass
+
+	file = open(filepath)
+	readHeader(file)
+
+	observationsByClass = sortByClass(file)
+	meansByClass = calculateMeans(observationsByClass)
+	priorsByClass = calPrior(observationsByClass)
+
+
+	covarsByClass = csfullcovm(observationsByClass, meansByClass)
+	printParam_full(priorsByClass,meansByClass,covarsByClass,"usps_cf.param")
+
+	covarsByClass = csdiagcovm(observationsByClass, meansByClass)
+	printParam_diag(priorsByClass,meansByClass,covarsByClass,"usps_cd.param")
+
+	covarsByClass = pfullcovm(observationsByClass, meansByClass)
+	printParam_full(priorsByClass,meansByClass,covarsByClass,"usps_pf.param")
+
+	covarsByClass = pdiagcovm(observationsByClass, meansByClass)
+	printParam_diag(priorsByClass,meansByClass,covarsByClass,"usps_pd.param")
+
+
 
 
 def train():
@@ -230,10 +324,10 @@ def train():
 	observationsByClass = sortByClass(file)
 	meansByClass = calculateMeans(observationsByClass)
 	priorsByClass = calPrior(observationsByClass)
+
 	covarsByClass = sigmaSquared(observationsByClass,meansByClass)
-	covarsByClass = [covarsByClass for n in range(0,10)]
-	
-	covarsByClass = csdiagcovm(observationsByClass, meansByClass)
+	#pdiagcovm(observationsByClass, meansByClass)
+	#csdiagcovm(observationsByClass, meansByClass)
 
 
 def test(filename):
@@ -243,10 +337,8 @@ def test(filename):
 
 	lPriors = logPriors(priorsByClass)
 	logConstTerms = logConstTerm(determinants_diag(covarsByClass))
-
-	logConstTerms = [0]*10
 	invCovs = invsersCovars_diag(covarsByClass)
-
+	logConstTerms = [0]*10
 	mistakesMatrix = np.zeros((10,10),dtype = int)
 
 	file = open(filename)
@@ -273,4 +365,4 @@ def run():
 	train()
 	test("usps.test")
 
-run()
+printAllParams()
