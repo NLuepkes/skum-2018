@@ -82,6 +82,7 @@ def calPrior(listOfLists):
 		priors[x%10] = np.divide(len(listOfLists[x%10]),obSize)
 	return priors
 
+
 def inverseCovars_full(covars):
 	invCov = []
 	for sig in covars:
@@ -147,6 +148,86 @@ def decisionRule_diag(logPriors,invCovs,means,logConstTerms,x):
 	return maxIndex
 
 
+
+
+##### SHEET 05 ####
+
+# a)
+
+# class specific full covariance matrix
+def csfullcovm(listOfLists, listMeans) :
+	listOfSig = []
+	for index in range(numbOfClasses):
+		sum = np.zeros((256,256), dtype = float)
+		for observation in listOfLists[index % numbOfClasses]:
+			x = observation - listMeans[index]
+			x = np.matmul(x, np.matrix.transpose(x))
+			sum = np.add(sum, x)
+		listOfSig.extend(np.divide(sum, len(listOfLists[index])))
+	return listOfSig
+
+def csdiagcovm(listOfLists, listMeans) :
+	listOfSig = []
+	for index in range(numbOfClasses):
+		sum = np.zeros(256, dtype = float)
+		for observation in listOfLists[index % numbOfClasses]:
+			x = observation - listMeans[index]
+			x = np.square(x)
+			sum = np.add(sum, x)
+		listOfM.extend(np.divide(sum, len(listOfLists[index])))
+	return listOfSig
+
+def pfullcovm(listOfLists, listMeans) :
+	sum = np.zeros((256,256), dtype = float)
+	for index in range(numbOfClasses):
+		for observation in listOfLists[index % numbOfClasses]:
+			x = observation - listMeans[index]
+			x = np.matmul(x, np.matrix.transpose(x))
+			sum = np.add(sum, x)
+	sum = np.divide(sum, obSize)
+	return sum
+
+def pdiagcovm(listOfLists, listMeans) :
+	sum = np.zeros(256, dtype = float)
+	for index in range(numbOfClasses):
+		for observation in listOfLists[index % numbOfClasses]:
+			x = observation - listMeans[index]
+			x = np.square(x)
+			sum = np.add(sum, x)
+	sum = np.divide(sum, obSize)
+	return sum
+
+
+def smooth(listOfLists, lam, means) :
+	pooledM = pfullcovm(listOfLists, means)
+	csM = cdfullcovm(listOfLists, means)
+	sig = []
+	for index in range(numbOfClasses) :
+		sig.extend(lam*pooledM + (1-lam)*csM[index%numbOfClasses])
+	return sig
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 def train():
 	global numbOfClasses
 	global arraySize
@@ -196,10 +277,3 @@ def test(filename):
 def run():
 	train()
 	test("usps.test")
-
-
-
-
-
-
-run()
