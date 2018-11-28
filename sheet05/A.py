@@ -60,7 +60,7 @@ def calculateMeans(listOfLists):
 	listOfM = []
 	for index in range(numbOfClasses):
 		sum = np.zeros(256, dtype = float)
-		for observation in listOfLists[index % numbOfClasses]:
+		for observation in listOfLists[index]:
 			sum = np.add(sum, observation)
 		listOfM.append(np.divide(sum, len(listOfLists[index])))
 	return listOfM
@@ -70,8 +70,8 @@ def sigmaSquared(listOfLists, means):
 	global obSize
 	v = np.zeros(256, dtype = float)
 	for x in range(numbOfClasses) :
-		for arr in listOfLists[x%numbOfClasses] :
-			v = np.add(v, np.square( np.subtract(arr, means[x%numbOfClasses])))
+		for arr in listOfLists[x] :
+			v = np.add(v, np.square( np.subtract(arr, means[x])))
 	return np.divide(v, obSize).tolist()
 
 def calPrior(listOfLists):
@@ -79,7 +79,7 @@ def calPrior(listOfLists):
 	global obSize
 	priors = [ 0 for i in range(numbOfClasses) ]
 	for x in range(numbOfClasses) :
-		priors[x%10] = np.divide(len(listOfLists[x%10]),obSize)
+		priors[x] = np.divide(len(listOfLists[x]),obSize)
 	return priors
 
 
@@ -120,7 +120,7 @@ def logPriors(priors):
 
 def quadratic_diag(mean,invCovar,x):
 	vec = x - mean
-	return (-1/2)*np.sum(np.multiply(invCovar,vec**2))
+	return (-1/2)*np.sum(np.multiply(invCovar,np.power(vec,2)))
 
 def quadratic_full(mean,invCovar,x):
 	vec = x - mean
@@ -134,7 +134,7 @@ def decisionRule_full(logPriors,invCovs,means,logConstTerms,x):
 	max = -sys.maxsize
 	for k in range(numbOfClasses):
 		disc = logPriors[k] + logConstTerms[k] + quadratic_full(means[k],invCovs[k],x)
-		if disc >= max:
+		if disc >= max :
 			max = disc
 			maxIndex = k
 	return maxIndex
@@ -147,7 +147,7 @@ def decisionRule_diag(logPriors,invCovs,means,logConstTerms,x):
 	for k in range(numbOfClasses):
 		disc = logPriors[k] + logConstTerms[k] + quadratic_diag(means[k],invCovs[k],x)
 		probs.append(disc)
-		if disc >= max:
+		if disc >= max :
 			max = disc
 			maxIndex = k
 	if maxIndex == -1 :
@@ -233,7 +233,7 @@ def train():
 	covarsByClass = sigmaSquared(observationsByClass,meansByClass)
 	covarsByClass = [covarsByClass for n in range(0,10)]
 	
-	covarsByClass = csdiagcovm(observationsByClass, meansByClass)
+	#covarsByClass = csdiagcovm(observationsByClass, meansByClass)
 
 
 def test(filename):
@@ -243,6 +243,7 @@ def test(filename):
 
 	lPriors = logPriors(priorsByClass)
 	logConstTerms = logConstTerm(determinants_diag(covarsByClass))
+
 	logConstTerms = [0]*10
 	invCovs = invsersCovars_diag(covarsByClass)
 
@@ -254,11 +255,11 @@ def test(filename):
 	numberOfTests = 0
 	numberOfMistakes = 0
 	for k in range(10):
-		#print('regocniing all of class {}'.format(k))
 		numberOfTests = numberOfTests + len(testInstancesByClass[k%10])
 		for observation in testInstancesByClass[k%10]:
 			# für Blatt 03 ist _diag ok, ansich aber allgemein machen
 			foundClass = decisionRule_diag(lPriors,invCovs,meansByClass,logConstTerms,observation)
+			print(foundClass)
 			if foundClass != k:
 				numberOfMistakes = numberOfMistakes + 1
 				mistakesMatrix[k%10,foundClass%10] = mistakesMatrix[k%10,foundClass%10] + 1
@@ -271,5 +272,5 @@ def test(filename):
 def run():
 	train()
 	test("usps.test")
-	
+
 run()
