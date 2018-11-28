@@ -1,6 +1,7 @@
 # we build a list of lists, which contains the matrices sotred accordning to their classIndex
 
 import numpy as np
+import math
 import sys
 
 filepath=sys.argv[1]
@@ -8,6 +9,11 @@ filepath=sys.argv[1]
 numbOfClasses = 0
 arraySize = 0
 obSize = 0
+
+meansByClass = []
+covarsByClass = []
+priorsByClass = []
+
 
 # part a
 
@@ -24,7 +30,7 @@ def readHeader(file):
 def sortByClass(file):
 	global numbOfClasses
 	global obSize
-	listOfLists = [ [] for i in range(numbOfClasses) ]
+	listOfLists = [ [] for i in range(numbOfClasses+1) ]
 	flag = True
 	while flag :
 		flag = readMatr(file, listOfLists)
@@ -71,39 +77,129 @@ def sigmaSquared(listOfLists, means):
 def calPrior(listOfLists):
 	global numbOfClasses
 	global obSize
-	priors = [0]*numbOfClasses
-	for x in range(numbOfClasses) :
-		priors[x] = np.divide(len(listOfLists[x]),obSize)
+	priors = [ 0 for i in range(numbOfClasses+1) ]
+	for x in range(numbOfClasses+1) :
+		priors[x%10] = np.divide(len(listOfLists[x%10]),obSize)
 	return priors
 
-# part b
-def exb():
+def inverseCovars_full(covars):
+	invCov = []
+	for sig in covars:
+		invCov.append(np.linalg.inv(sig))
+	return invCov
+
+def invsersCovars_diag(covars):
+	invCovs = []
+	for diagVector in covars:
+		invCovs.append(np.reciprocal(diagVector))
+	return invCovs
+
+def determinants(covars):
+	determinants = []
+	for covar in covars:
+		determinants.append(np.prod(covar))
+	return determinants
+
+def logConstTerm(determinants):
+	global arraySize
+	lCTerms = []
+	for det in determinants:
+		num = (-1/2)*(arraySize*np.log(2*math.pi)+np.log(det))
+		lCTerms.append(num)
+	return lCTerms
+
+def logPriors(priors):
+	logPrios =[]
+	for prior in priors:
+		logPrios.append(np.log(prior))
+	return logPrios
+
+def quadratic_diag(mean,invCovar,x):
+	vec = x - mean
+	return np.sum(np.multiply(invCovar,vec**2))
+
+def quadratic_full(mean,invCovar,x):
+	vec = x- mean
+	temp = invCovar*vec
+	return np.dot(vec,temp)
+
+
+def decisionRule_full(logPriors,invCovs,means,logConstTerms,x):
+	global numbOfClasses
+	maxIndex = -1
+	max = 0
+	for k in range(numbOfClasses+1):
+		disc = logPriors[k%10] + logConstTerms[k%10] + quadratic_diag(means[k%10],invCovs[k%10],x)
+		if disc >= max:
+			max = disc
+			maxIndex = k
+	return maxIndex
+
+def decisionRule_diag(logPriors,invCovs,means,logConstTerms,x):
+	global numbOfClasses
+	maxIndex = -1
+	max = 0
+	for k in range(numbOfClasses+1):
+		disc = logPriors[k%10] + logConstTerms[k%10] + quadratic_diag(means[k%10],invCovs[k%10],x)
+		if disc >= max:
+			max = disc
+			maxIndex = k
+	return maxIndex
+
+
+def train():
 	global numbOfClasses
 	global arraySize
+	global filepath
+	global meansByClass
+	global priorsByClass
+	global covarsByClass
 
 	file = open(filepath)
 	readHeader(file)
 
-	listOfLists = sortByClass(file)
-	means = calculateMeans(listOfLists)
-	sigsq = sigmaSquared(listOfLists, means)
-	prior = calPrior(listOfLists)
+	observationsByClass = sortByClass(file)
+	meansByClass = calculateMeans(observationsByClass)
+	priorsByClass = calPrior(observationsByClass)
+	covarsByClass = sigmaSquared(observationsByClass,meansByClass)
 
-	file = open("usps_d.param", "w")
-	file.write("d"+"\n")
-	file.write(str(numbOfClasses)+"\n")
-	file.write(str(arraySize)+"\n")
 
-	for x in range(1,numbOfClasses+1) :
-		file.write(str(x)+"\n")
-		file.write(str(prior[x%numbOfClasses]))
-		file.write("\n")
-		for i in means[x%numbOfClasses] :
-			file.write(str(i)+" ")
-		file.write("\n")
-		for i in sigsq :
-			file.write(str(i))
-		file.write("\n")
-	return print("done!")
+def test(filename):
+	global meansByClass
+	global priorsByClass
+	global covarsByClass
 
-exb()
+	lPriors = logPriors(priorsByClass)
+	logConstTerms = logConstTerm(determinants(covarsByClass))
+	invCovs = invsersCovars_diag(covarsByClass)
+
+	mistakesMatrix = np.zeros((10,10),dtype = int)
+
+	file = open(filename)
+	readHeader(file)
+	testInstancesByClass = sortByClass(file)
+	numberOfTests = 0
+	numberOfMistakes = 0
+	for k in range(11):
+		numberOfTests = numberOfTests + len(testInstancesByClass[k%10])
+		for observation in testInstancesByClass[k%10]:
+			foundClass = decisionRule_diag(lPriors,invCovs,meansByClass,logConstTerms,observation)
+			if foundClass != k:
+				numberOfMistakes = numberOfMistakes + 1
+				mistakesMatrix[k%10,foundClass%10] = mistakesMatrix[k%10,foundClass%10] + 1
+
+	errorRate =numberOfMistakes / numberOfTests
+	print(errorRate)
+	print(mistakesMatrix)
+
+
+def run():
+	train()
+	test("usps.test")
+
+
+
+
+
+
+run()
