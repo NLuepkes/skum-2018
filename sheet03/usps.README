@@ -1,0 +1,121 @@
+### training / test data
+
+Below you find the definitions for the data and parameter files
+provided for the training/classification problem using multivariate Gaussian
+class conditional probabilities.
+
+########## FORMAT of usps.train (to be used for training) ################
+10		        : number of classes (10 digits, 10 itself represents digit zero)
+256			: number of dimensions of the observation vector
+   the rest of the data is blocked in the following way (formatted in
+   such a way that you are able to get an idea of the digit by looking
+   at the ASCII data file itself). Each block representing a single
+   digit/observation of a digit is structured as follows:
+k			: class of the following observation vector 
+x_1   ... x_16          : components   1 to  16 of observation vector x
+x_17  ... x_32		: components  17 to  32 of observation vector x
+
+ ..   ...  ..
+
+x_241 ... x_256		: components 241 to 256 of observation vector x
+
+########## FORMAT of usps.test (to be classified) ################
+The structure of the testing data file is the same as for the training
+data file.
+
+### parameters
+
+Please make sure, that the format of the parameter file resulting from
+your training implementation conforms to the following format:
+
+########## FORMAT of PARAMETER FILES (line by line) ####################
+# NOTE that the format is different depending on the covariance model: #
+#                                                                      #
+# In case of pooled covariance matrices, copy the covariance matrix    #
+# for every class. sigma^2_1 = sigma, sigma^2_2 = sigma, ...           #
+########################################################################
+m			: structure of matrix produced: 
+			     m=f   for full     covariance matrices
+			     m=d   for diagonal covariance matrices
+K			: number of classes
+D			: observation space dimension
+1			: class index of class 1
+p(1)			: prior probability for class 1
+mu_1_[1..D]		: mean vector for class 1 (1st to Dth component) 
+#
+# if m==d
+#
+sigma^2_1_[1..D]	: vector of variances for class 1 (diag. of cov. matrix)
+#
+# if m==f
+#
+Sigma_1_1[1...D]	: 1st row of covariance matrix for class 1
+ ...
+Sigma_1_D[1...D]	: Dth row of covariance matrix for class 1
+2			: class index of class 2
+p(2)			: prior probability for class 2
+mu_2_[1..D]		: mean vector for class 2 (1st to Dth component) 
+#
+# if m==d
+#
+sigma^2_2_[1..D]	: vector of variances for class 2 (diag. of cov. matrix)
+#
+# if m==f
+#
+Sigma_2_1[1...D]	: 1st row of covariance matrix for class 2
+ ...
+Sigma_2_D[1...D]	: Dth row of covariance matrix for class 2
+
+ ...
+
+K			: class index of class K
+p(K)			: prior probability for class K
+mu_K_[1..D]		: mean vector for class K (1st to Dth component) 
+#
+# if m==d
+#
+sigma^2_K_[1..D]	: vector of variances for class K (diag. of cov. matrix)
+#
+# if m==f
+#
+Sigma_K_1[1...D]	: 1st row of covariance matrix for class K
+ ...
+Sigma_K_D[1...D]	: Dth row of covariance matrix for class K
+######### END FORMAT PARAMETER FILE ##############################
+
+### EXAMPLES for parameter file: ###
+### 1. EXAMPLE for parameter file with diagonal covariances: ###
+d
+3	: # of classes
+2	: # dimension of observation vectors
+1	: class k=1
+0.2	: prior p(k=1)
+0 0	: mean vector mu_{k=1} = (0,0)
+1 1	: vector of variances sigma^2_{k=1} = (1 1)
+2	: class k=3
+0.3	: prior p(k=2)
+0 1	: mean vector mu_{k=2} = (0,1)
+2 2	: vector of variances sigma^2_{k=2} = (2 2)
+3	: class k=3
+0.5	: prior p(k=3)
+1 0	: mean vector mu_{k=3} = (1,0)
+1 1	: vector of variances sigma^2_{k=3} = (1 1)
+### 2. EXAMPLE for parameter file with full covariances: ###
+f
+3	: # of classes
+2	: # dimension of observation vectors
+1	: class k=1
+0.2	: prior p(k=1)
+0 0	: mean vector mu_{k=1} = (0,0)
+1 0	: covariance matrix Sigma_{k=1} = (1 0)
+0 1	:				  (0 1)
+2	: class k=3
+0.3	: prior p(k=2)
+0 1	: mean vector mu_{k=2} = (0,1)
+2 1	: covariance matrix Sigma_{k=2} = (2 1)
+1 2	:				  (1 2)
+3	: class k=3
+0.5	: prior p(k=3)
+1 0	: mean vector mu_{k=3} = (1,0)
+1 1	: covariance matrix Sigma_{k=3} = (1 1)
+1 1	:				  (1 1)
