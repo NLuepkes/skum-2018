@@ -96,9 +96,9 @@ def sigmoid(x, deriv=False):
     :return:
     '''
     if deriv :
-        return ((1/x) - 1)*np.power(x,2)
+        return (np.reciprocal(x) - 1)*np.power(x,2)
     else :
-        return 1/(1 + np.exp(-x))
+        return np.reciprocal(1 + np.exp(-x))
 
 
 def softmax(x, deriv=False):
