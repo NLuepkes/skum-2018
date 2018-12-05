@@ -215,6 +215,7 @@ class BasicNeuralNetwork():
         :return: output of the network
         :rtype: np.array
         """
+        x = sigmoid(x)
         for l in self.layers :
             x = l.inference(x)
         return x
