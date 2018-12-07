@@ -80,7 +80,7 @@ def tanh(x, deriv=False):
 	1 - tanh(x)
     '''
     if deriv:
-        return 1.0 - np.tanh(x)
+        return 1.0 - np.tanh(x) # Korrektur in Glob: 1.0 - x^2
     else:
         return np.tanh(x)
 
